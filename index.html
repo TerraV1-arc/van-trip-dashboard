@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>🚐 GRR → Columbus Van Trip</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #2563eb;
+      --blue-dark: #1e40af;
+      --green: #16a34a;
+      --green-light: #dcfce7;
+      --orange: #ea580c;
+      --orange-light: #fff7ed;
+      --slate: #64748b;
+      --slate-light: #f1f5f9;
+      --white: #ffffff;
+      --dark: #0f172a;
+      --radius: 16px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4ff;
+      color: var(--dark);
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(145deg, #1e3a8a 0%, #2563eb 55%, #38bdf8 100%);
+      color: white;
+      padding: 36px 20px 28px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 3rem; line-height: 1; margin-bottom: 10px; }
+    .hero h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.5px; }
+    .hero .route {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px;
+      padding: 6px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .hero .meta { font-size: 0.78rem; opacity: 0.75; margin-top: 8px; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .tab {
+      flex: 1;
+      padding: 14px 8px;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      background: #f8faff;
+    }
+
+    /* ── SECTIONS ── */
+    .section { display: none; padding: 20px 16px; }
+    .section.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      padding: 14px 18px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .card-header.blue { background: #eff6ff; color: var(--blue); }
+    .card-header.green { background: var(--green-light); color: var(--green); }
+    .card-header.orange { background: var(--orange-light); color: var(--orange); }
+    .card-header.slate { background: var(--slate-light); color: var(--slate); }
+    .card-body { padding: 16px 18px; }
+
+    /* ── BIG NUMBER ── */
+    .big-number {
+      text-align: center;
+      padding: 24px 16px 16px;
+    }
+    .big-number .label { font-size: 0.75rem; color: var(--slate); text-transform: uppercase; letter-spacing: 0.08em; }
+    .big-number .amount { font-size: 3.5rem; font-weight: 900; line-height: 1.1; }
+    .big-number .amount.green { color: var(--green); }
+    .big-number .amount.orange { color: var(--orange); }
+    .big-number .breakdown { font-size: 0.78rem; color: var(--slate); margin-top: 4px; }
+
+    /* ── LINE ITEMS ── */
+    .line-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid #f8fafc;
+      font-size: 0.9rem;
+    }
+    .line-item:last-child { border-bottom: none; }
+    .line-item .lbl { color: var(--slate); }
+    .line-item .val { font-weight: 700; }
+    .line-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 0 0;
+      margin-top: 6px;
+      border-top: 2px solid #e2e8f0;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .badge.green { background: var(--green-light); color: var(--green); }
+    .badge.orange { background: var(--orange-light); color: var(--orange); }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .stat-card .s-label { font-size: 0.7rem; color: var(--slate); text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-card .s-val { font-size: 1.3rem; font-weight: 800; color: var(--dark); margin-top: 4px; }
+    .stat-card .s-sub { font-size: 0.72rem; color: var(--slate); margin-top: 2px; }
+
+    /* ── CHART ── */
+    .chart-wrap { height: 240px; position: relative; }
+
+    /* ── COMPARISON TOGGLE ── */
+    .compare-toggle {
+      display: flex;
+      background: var(--slate-light);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 20px;
+    }
+    .compare-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 9px;
+      text-align: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--slate);
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .compare-btn.active {
+      background: white;
+      color: var(--blue);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* ── SAVINGS BANNER ── */
+    .savings-banner {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .savings-banner .s-title { font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.06em; }
+    .savings-banner .s-amount { font-size: 2rem; font-weight: 900; }
+    .savings-banner .s-desc { font-size: 0.78rem; opacity: 0.8; margin-top: 3px; }
+
+    /* ── TRIP DETAILS ── */
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.88rem;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-icon { font-size: 1.2rem; line-height: 1; min-width: 24px; text-align: center; }
+    .detail-content .d-label { font-weight: 600; color: var(--dark); }
+    .detail-content .d-sub { color: var(--slate); font-size: 0.78rem; margin-top: 2px; }
+
+    /* ── ASSUMPTION CHIPS ── */
+    .chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: var(--slate-light);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.78rem;
+    }
+    .chip strong { color: var(--dark); }
+    .chip span { color: var(--slate); }
+
+    /* ── SHARE SECTION ── */
+    .share-box {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+      border-radius: var(--radius);
+      padding: 22px 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .share-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    .share-box p { font-size: 0.82rem; opacity: 0.8; }
+
+    footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--slate);
+      padding: 20px 16px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-icon">🚐</div>
+  <h1>GRR → Columbus Trip Cost</h1>
+  <div class="route">Grand Rapids, MI <span>→</span> Columbus, OH</div>
+  <div class="meta">Budget Chevy Express 15-Passenger · Jun 12–14, 2026 · 11 People</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('summary')">💰 Summary</div>
+  <div class="tab" onclick="showTab('options')">📋 Options</div>
+  <div class="tab" onclick="showTab('charts')">📊 Charts</div>
+  <div class="tab" onclick="showTab('details')">🗺️ Details</div>
+</div>
+
+<!-- ═══════════════ SUMMARY TAB ═══════════════ -->
+<div id="summary" class="section active">
+
+  <div class="savings-banner">
+    <div class="s-title">Choose Option A and save</div>
+    <div class="s-amount">$4.77 per person</div>
+    <div class="s-desc">$52.47 saved across the whole group</div>
+  </div>
+
+  <!-- Option A Big Number -->
+  <div class="card">
+    <div class="card-header green">✅ Option A — Best Value · Return Sun 12:00 PM</div>
+    <div class="big-number">
+      <div class="label">Your share of the trip</div>
+      <div class="amount green">$89.23</div>
+      <div class="breakdown">Rental $70.27 + Gas $18.96</div>
+    </div>
+    <div class="card-body">
+      <div class="line-item"><span class="lbl">Base rental (2 days × $222.99)</span><span class="val">$445.98</span></div>
+      <div class="line-item"><span class="lbl">Overage (4 hrs × $44.61)</span><span class="val">$178.44</span></div>
+      <div class="line-item"><span class="lbl">Taxes & fees</span><span class="val">$148.57</span></div>
+      <div class="line-item"><span class="lbl">Estimated gas</span><span class="val">$208.54</span></div>
+      <div class="line-total"><span>Grand Total</span><span>$981.53</span></div>
+    </div>
+  </div>
+
+  <!-- Option B Big Number -->
+  <div class="card">
+    <div class="card-header orange">Option B · Return Sun 2:00 PM</div>
+    <div class="big-number">
+      <div class="label">Your share of the trip</div>
+      <div class="amount orange">$94.00</div>
+      <div class="breakdown">Rental $75.04 + Gas $18.96</div>
+    </div>
+    <div class="card-body">
+      <div class="line-item"><span class="lbl">Base rental (3 days × $222.99)</span><span class="val">$668.97</span></div>
+      <div class="line-item"><span class="lbl">Taxes & fees</span><span class="val">$156.49</span></div>
+      <div class="line-item"><span class="lbl">Estimated gas</span><span class="val">$208.54</span></div>
+      <div class="line-total"><span>Grand Total</span><span>$1,034.00</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ OPTIONS TAB ═══════════════ -->
+<div id="options" class="section">
+
+  <div class="compare-toggle">
+    <div class="compare-btn active" id="btn-a" onclick="showOption('a')">Option A — 12:00 PM</div>
+    <div class="compare-btn" id="btn-b" onclick="showOption('b')">Option B — 2:00 PM</div>
+  </div>
+
+  <!-- OPTION A DETAIL -->
+  <div id="opt-a">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="s-label">Total Cost</div><div class="s-val">$981.53</div><div class="s-sub">rental + gas</div></div>
+      <div class="stat-card"><div class="s-label">Per Person</div><div class="s-val" style="color:var(--green)">$89.23</div><div class="s-sub">÷ 11 people</div></div>
+      <div class="stat-card"><div class="s-label">Rental Total</div><div class="s-val">$772.99</div><div class="s-sub">inc. taxes</div></div>
+      <div class="stat-card"><div class="s-label">Gas Total</div><div class="s-val">$208.54</div><div class="s-sub">642 mi · 13 mpg</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header green">Rental Charge Breakdown</div>
+      <div class="card-body">
+        <div class="line-item"><span class="lbl">2 days × $222.99/day</span><span class="val">$445.98</span></div>
+        <div class="line-item"><span class="lbl">4 hours × $44.61/hr</span><span class="val">$178.44</span></div>
+        <div class="line-item"><span class="lbl">Taxes & fees</span><span class="val">$148.57</span></div>
+        <div class="line-total"><span>Rental Subtotal</span><span>$772.99</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header green">Return Schedule</div>
+      <div class="card-body">
+        <div class="line-item"><span class="lbl">Pick-up</span><span class="val">Fri Jun 12 · 8:00 AM</span></div>
+        <div class="line-item"><span class="lbl">Drop-off</span><span class="val">Sun Jun 14 · 12:00 PM</span></div>
+        <div class="line-item"><span class="lbl">Duration billed</span><span class="val">2 days + 4 hours</span></div>
+        <div class="line-item"><span class="lbl">Location</span><span class="val">GRR Airport</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B DETAIL -->
+  <div id="opt-b" style="display:none">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="s-label">Total Cost</div><div class="s-val">$1,034.00</div><div class="s-sub">rental + gas</div></div>
+      <div class="stat-card"><div class="s-label">Per Person</div><div class="s-val" style="color:var(--orange)">$94.00</div><div class="s-sub">÷ 11 people</div></div>
+      <div class="stat-card"><div class="s-label">Rental Total</div><div class="s-val">$825.46</div><div class="s-sub">inc. taxes</div></div>
+      <div class="stat-card"><div class="s-label">Gas Total</div><div class="s-val">$208.54</div><div class="s-sub">642 mi · 13 mpg</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header orange">Rental Charge Breakdown</div>
+      <div class="card-body">
+        <div class="line-item"><span class="lbl">3 days × $222.99/day</span><span class="val">$668.97</span></div>
+        <div class="line-item"><span class="lbl">Taxes & fees</span><span class="val">$156.49</span></div>
+        <div class="line-total"><span>Rental Subtotal</span><span>$825.46</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header orange">Return Schedule</div>
+      <div class="card-body">
+        <div class="line-item"><span class="lbl">Pick-up</span><span class="val">Fri Jun 12 · 8:00 AM</span></div>
+        <div class="line-item"><span class="lbl">Drop-off</span><span class="val">Sun Jun 14 · 2:00 PM</span></div>
+        <div class="line-item"><span class="lbl">Duration billed</span><span class="val">3 full days</span></div>
+        <div class="line-item"><span class="lbl">Location</span><span class="val">GRR Airport</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ CHARTS TAB ═══════════════ -->
+<div id="charts" class="section">
+
+  <div class="card">
+    <div class="card-header blue">Total Cost — Option A vs B</div>
+    <div class="card-body">
+      <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header blue">Cost Breakdown — Option A</div>
+    <div class="card-body">
+      <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header blue">Per Person — Rental vs Gas</div>
+    <div class="card-body">
+      <div class="chart-wrap"><canvas id="stackedChart"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ DETAILS TAB ═══════════════ -->
+<div id="details" class="section">
+
+  <div class="card">
+    <div class="card-header slate">🗺️ Route</div>
+    <div class="card-body">
+      <div class="detail-row">
+        <div class="detail-icon">📍</div>
+        <div class="detail-content"><div class="d-label">Grand Rapids, MI → Columbus, OH</div><div class="d-sub">via I-96 E and US-23 S</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">📏</div>
+        <div class="detail-content"><div class="d-label">321 miles each way</div><div class="d-sub">642 miles round trip</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">⏱️</div>
+        <div class="detail-content"><div class="d-label">~4 hrs 56 min drive</div><div class="d-sub">fastest current route</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header slate">⛽ Gas Estimate</div>
+    <div class="card-body">
+      <div class="line-item"><span class="lbl">Van MPG (highway)</span><span class="val">~13 MPG</span></div>
+      <div class="line-item"><span class="lbl">Total miles</span><span class="val">642 mi</span></div>
+      <div class="line-item"><span class="lbl">Gallons needed</span><span class="val">~49.4 gal</span></div>
+      <div class="line-item"><span class="lbl">Michigan avg price</span><span class="val">$4.2220/gal</span></div>
+      <div class="line-total"><span>Estimated Gas Total</span><span>$208.54</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header slate">🚐 Vehicle</div>
+    <div class="card-body">
+      <div class="detail-row">
+        <div class="detail-icon">🚗</div>
+        <div class="detail-content"><div class="d-label">Chevrolet Express 15-Passenger Van</div><div class="d-sub">or similar · Automatic · Budget rental</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">👥</div>
+        <div class="detail-content"><div class="d-label">Seats up to 15</div><div class="d-sub">11 passengers on this trip</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-icon">✅</div>
+        <div class="detail-content"><div class="d-label">Unlimited mileage · Free cancellation</div><div class="d-sub">Pay at pick-up · Online check-in</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header slate">📌 Assumptions</div>
+    <div class="card-body">
+      <div class="chip-wrap">
+        <div class="chip"><strong>13 MPG</strong> <span>Chevy Express hwy (EPA)</span></div>
+        <div class="chip"><strong>$4.222/gal</strong> <span>MI avg · AAA</span></div>
+        <div class="chip"><strong>642 mi</strong> <span>round trip total</span></div>
+        <div class="chip"><strong>11 people</strong> <span>equal split</span></div>
+        <div class="chip"><strong>Unlimited miles</strong> <span>no overage</span></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Generated for group trip planning · Prices in USD · Budget rental GRR Airport</footer>
+
+</div>
+
+<script>
+  // ── TAB SWITCHING ──
+  function showTab(tab) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  // ── OPTION TOGGLE ──
+  function showOption(opt) {
+    document.getElementById('opt-a').style.display = opt === 'a' ? 'block' : 'none';
+    document.getElementById('opt-b').style.display = opt === 'b' ? 'block' : 'none';
+    document.getElementById('btn-a').classList.toggle('active', opt === 'a');
+    document.getElementById('btn-b').classList.toggle('active', opt === 'b');
+  }
+
+  // ── CHARTS ──
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { size: 12 }, padding: 14 } } }
+  };
+
+  // Bar: total cost comparison
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Option A (12pm)', 'Option B (2pm)'],
+      datasets: [
+        { label: 'Rental', data: [772.99, 825.46], backgroundColor: ['#93c5fd','#fdba74'], borderRadius: 6, borderSkipped: false },
+        { label: 'Gas', data: [208.54, 208.54], backgroundColor: ['#6ee7b7','#6ee7b7'], borderRadius: 6, borderSkipped: false }
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, ticks: { callback: v => '$'+v }, grid: { color: '#f1f5f9' } }
+      },
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: $${c.raw.toFixed(2)}` } }
+      }
+    }
+  });
+
+  // Doughnut: Option A breakdown
+  new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Base Rental', 'Hourly Overage', 'Taxes & Fees', 'Gas'],
+      datasets: [{
+        data: [445.98, 178.44, 148.57, 208.54],
+        backgroundColor: ['#2563eb','#60a5fa','#93c5fd','#16a34a'],
+        borderColor: '#fff',
+        borderWidth: 3,
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      cutout: '55%',
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: { callbacks: { label: c => ` ${c.label}: $${c.raw.toFixed(2)} (${((c.raw/981.53)*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+
+  // Stacked bar: per person breakdown
+  new Chart(document.getElementById('stackedChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Option A', 'Option B'],
+      datasets: [
+        { label: 'Rental/person', data: [70.27, 75.04], backgroundColor: ['#2563eb','#ea580c'], borderRadius: 6, borderSkipped: false },
+        { label: 'Gas/person', data: [18.96, 18.96], backgroundColor: ['#6ee7b7','#6ee7b7'], borderRadius: 6, borderSkipped: false }
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, ticks: { callback: v => '$'+v }, grid: { color: '#f1f5f9' } }
+      },
+      plugins: {
+        ...chartDefaults.plugins,
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: $${c.raw.toFixed(2)}` } }
+      }
+    }
+  });
+</script>
+</body>
+</html>
